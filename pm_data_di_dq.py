@@ -734,8 +734,8 @@ def th_find_root_cause(schema):
 					tables[table_name]['nes'].add(hole[6])
 					holes.append(hole)
 			except cx_Oracle.DatabaseError as e:
-				app_logger.error(e)
-				app_logger.error(sqlplus_script)
+				app_logger_local.error(e)
+				app_logger_local.error(sqlplus_script)
 				quit()
 			data_found={}
 			r2l_found={}
@@ -765,8 +765,8 @@ def th_find_root_cause(schema):
 							data_found[table_name][datetime]={}
 						data_found[table_name][datetime][ne]=count
 				except cx_Oracle.DatabaseError as e:
-					app_logger.error(e)
-					app_logger.error(sqlplus_script)
+					app_logger_local.error(e)
+					app_logger_local.error(sqlplus_script)
 					quit()
 
 				if schema not in R2L_SOURCE:
@@ -787,8 +787,8 @@ def th_find_root_cause(schema):
 						if record_key not in r2l_found:
 							r2l_found[record_key]=True
 				except cx_Oracle.DatabaseError as e:
-					app_logger.error(e)
-					app_logger.error(sqlplus_script)
+					app_logger_local.error(e)
+					app_logger_local.error(sqlplus_script)
 					quit()
 
 
@@ -880,8 +880,8 @@ def th_find_root_cause_summary(schema):
                                         tables[table_name]['nes'].add(hole[6])
                                         holes.append(hole)
                         except cx_Oracle.DatabaseError as e:
-                                app_logger.error(e)
-                                app_logger.error(sqlplus_script)
+                                app_logger_local.error(e)
+                                app_logger_local.error(sqlplus_script)
                                 quit()
                         data_found={}
                         for table,data in tables.items():
@@ -906,8 +906,8 @@ def th_find_root_cause_summary(schema):
                                                         data_found[table_name][datetime]={}
                                                 data_found[table_name][datetime]=count
                                 except cx_Oracle.DatabaseError as e:
-                                        app_logger.error(e)
-                                        app_logger.error(sqlplus_script)
+                                        app_logger_local.error(e)
+                                        app_logger_local.error(sqlplus_script)
                                         quit()
                         for idx,hole in enumerate(holes):
                                 schema=hole[3]
@@ -1004,8 +1004,8 @@ def fill_summary():
 						continue
 					inserted_data.append(['NA',schema,target_table,datetime_object,'ALL','ALL',resolution,records,message])
 			except cx_Oracle.DatabaseError as e:
-				app_logger.error(e)
-				app_logger.error(sqlplus_script)
+				app_logger_local.error(e)
+				app_logger_local.error(sqlplus_script)
 				quit()
 			data_found={}
 
