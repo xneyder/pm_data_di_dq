@@ -1111,10 +1111,10 @@ if __name__ == "__main__":
 		os.makedirs(LOG_DIR)
         LOG_FILE=LOG_DIR+'/track_loaded_data.log'
 	logger=LoggerInit(LOG_FILE,10)
-	DB_USER='psa'
-	DB_PASSWORD=base64.b64decode('ZGV2cGFzcw==')
-	ORACLE_SID='HLXPRD'
-	DB_HOST='kxhlxprd-scan:1521'
+	DB_USER=os.environ['DB_USER']
+	DB_PASSWORD=base64.b64decode(os.environ['DB_PASSWORD'])
+	ORACLE_SID=os.environ['ORACLE_SID']
+	DB_HOST=os.environ['DB_HOST']
 	DBL_DIR=os.environ['DVX2_IMP_DIR']+'/config/Dbl/'
 	dbl_file_list=set()
 	metadata={}
