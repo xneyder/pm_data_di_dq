@@ -1070,7 +1070,7 @@ def main():
 		worker.setDaemon(True)
 		workers.append({'function':th_fill_pm_status,'params':schema,'object':worker})
 		worker.start()
-	schema_list=['ERICSSON_EUTRAN']
+	#schema_list=['ERICSSON_EUTRAN']
 	for schema in filter(None,schema_list):
 		worker = Thread(target=th_check_status, args=(schema,))
 		worker.setDaemon(True)
