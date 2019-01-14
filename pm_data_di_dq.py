@@ -341,7 +341,6 @@ def th_check_status(schema):
 					a.ne_key_value,
 					a.datetime
 				""".format(schema=schema,table=table)
-				print(sqlplus_script)	
 				try:
 					cursor.execute(sqlplus_script)
 					for row in filter(None,cursor):
@@ -1048,7 +1047,7 @@ def main():
 	workers=[]
 
 	#donedir_list=['/teoco/rdr_med06/DBL/done/ERI_LTE_ENODEB_FPP/done']
-	"""for donedir in filter(None,donedir_list):
+	for donedir in filter(None,donedir_list):
 		app_logger.info('Start monitoring {donedir} for bcp files'.format(donedir=donedir))
 		worker = Thread(target=th_process_donedir, args=(donedir,))
 		worker.setDaemon(True)
@@ -1071,14 +1070,12 @@ def main():
 		worker.setDaemon(True)
 		workers.append({'function':th_fill_pm_status,'params':schema,'object':worker})
 		worker.start()
-	"""
 	schema_list=['ERICSSON_EUTRAN']
 	for schema in filter(None,schema_list):
 		worker = Thread(target=th_check_status, args=(schema,))
 		worker.setDaemon(True)
 		workers.append({'function':th_check_status,'params':schema,'object':worker})
 		worker.start()
-	"""
 	for schema in filter(None,schema_list):
 		worker = Thread(target=th_find_root_cause, args=(schema,))
 		worker.setDaemon(True)
@@ -1095,7 +1092,6 @@ def main():
 	worker.start()
 	workers.append({'function':fill_summary,'params':'','object':worker})
 
-	"""
 	#Monitor that none of the threads crashes
 	while True:
 		for idx,running_worker in enumerate(workers):
