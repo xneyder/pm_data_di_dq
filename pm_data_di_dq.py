@@ -50,6 +50,7 @@ class ManagedDbConnection:
 
 
 def check_running():
+	app_logger=logger.get_logger('check_running')
         process_name=os.path.basename(sys.argv[0])
         pids=[pid for pid in os.listdir('/proc') if pid.isdigit()]
         for pid in pids:
@@ -104,7 +105,7 @@ def load_metadata():
 
 		sqlplus_script="""
 			select TABLE_NAME,NE_KEY_NAME,SCHEMA
-			from AUDIT_DB.PM_DATA_CONFIG
+			from PM_DATA_USER.PM_DATA_CONFIG
 		"""
 		try:
 			cursor.execute(sqlplus_script)
@@ -216,7 +217,7 @@ def load_metadata():
 		cursor=db.cursor()
 		sqlplus_script="""
 			select SCHEMA,TABLE_NAME,NE_KEY_NAME,COUNTER,RULE
-			from AUDIT_DB.PM_DATA_QUALITY_CONFIG
+			from PM_DATA_USER.PM_DATA_QUALITY_CONFIG
 			where ACTIVE=1
 		"""
 		try:
@@ -264,7 +265,7 @@ def th_check_status(schema):
 					failed_records,
 					substr(to_char(error_log_file),0,4000) error_log_file
 					FROM
-					audit_db.pm_data_loaded
+					PM_DATA_USER.pm_data_loaded
 					WHERE
 					datetime > SYSDATE - 1
 					AND schema = '{schema}'
@@ -323,7 +324,7 @@ def th_check_status(schema):
 					a.ne_key_value,
 					a.datetime
 					FROM
-					audit_db.pm_data_status a, lkup_b b, lkup_c c
+					PM_DATA_USER.pm_data_status a, lkup_b b, lkup_c c
 					WHERE
 					a.table_name = b.table_name (+)
 					AND a.datetime = b.datetime (+)
@@ -340,6 +341,7 @@ def th_check_status(schema):
 					a.ne_key_value,
 					a.datetime
 				""".format(schema=schema,table=table)
+				print(sqlplus_script)	
 				try:
 					cursor.execute(sqlplus_script)
 					for row in filter(None,cursor):
@@ -353,7 +355,7 @@ def th_check_status(schema):
 				for start in range(0,len(update_list),batch_size):
 					try:
 						sqlplus_script="""
-							update AUDIT_DB.PM_DATA_STATUS set INSERTED_RECORDS=:1,AVG_INSERTED_RECORDS=:2,FAILED_RECORDS=:3,ERROR_LOG_FILE=:4,STATUS=:5, DATETIME_UPD_STATUS=sysdate
+							update PM_DATA_USER.PM_DATA_STATUS set INSERTED_RECORDS=:1,AVG_INSERTED_RECORDS=:2,FAILED_RECORDS=:3,ERROR_LOG_FILE=:4,STATUS=:5, DATETIME_UPD_STATUS=sysdate
 							WHERE SCHEMA=:6 AND TABLE_NAME=:7 AND NE_KEY_VALUE=:8 AND DATETIME=:9
 						"""
 						cursor.prepare(sqlplus_script)
@@ -386,7 +388,7 @@ def th_fill_pm_status(schema):
 				SELECT SCHEMA,TABLE_NAME,RESOLUTION,NE_KEY_NAME,
 				RTRIM(XMLAGG(XMLELEMENT(E,NE_KEY_VALUE,'@|@').EXTRACT('//text()') ORDER BY NE_KEY_VALUE).GetClobVal(),'@|@'), LOAD_TYPE, DBL_FILE
 				FROM (SELECT DISTINCT SCHEMA, TABLE_NAME ,NE_KEY_VALUE,min(RESOLUTION) RESOLUTION,NE_KEY_NAME,LOAD_TYPE,DBL_FILE
-				FROM AUDIT_DB.PM_DATA_LOADED
+				FROM PM_DATA_USER.PM_DATA_LOADED
 				WHERE DATETIME > SYSDATE-1
 				AND SCHEMA='{schema}'
 				GROUP BY SCHEMA, TABLE_NAME ,NE_KEY_NAME, NE_KEY_VALUE,LOAD_TYPE,DBL_FILE) A
@@ -449,7 +451,7 @@ def th_fill_pm_status(schema):
 			with open(ctl_file,'w') as file:
 				file.write('load data\n')
 				file.write("INFILE '{file_name}'\n".format(file_name=file_name))
-				file.write('INTO TABLE AUDIT_DB.PM_DATA_STATUS\n')
+				file.write('INTO TABLE PM_DATA_USER.PM_DATA_STATUS\n')
 				file.write('APPEND\n')
 				file.write("FIELDS TERMINATED BY '@|@'\n")
 				file.write('(DBL_FILE,\n')
@@ -465,7 +467,7 @@ def th_fill_pm_status(schema):
 			log_file=LOG_DIR+'/'+os.path.basename(file_name.replace('.bcp','.log'))
 			returncode,sqlldr_out=run_sqlldr(ctl_file, log_file)
 			if returncode!=0:
-				app_logger_local.error('Error loading {file_name} to table AUDIT_DB.PM_DATA_STATUS'.format(file_name=file_name))
+				app_logger_local.error('Error loading {file_name} to table PM_DATA_USER.PM_DATA_STATUS'.format(file_name=file_name))
 			try:
 				os.remove(log_file)
 			except OSError:
@@ -568,7 +570,7 @@ def th_process_errordir(dir):
 	                        cursor=db.cursor()
 				try:
 					sqlplus_script="""
-						insert into AUDIT_DB.PM_DATA_LOADED (DBL_FILE,SCHEMA,TABLE_NAME,DATETIME,NE_KEY_NAME,NE_KEY_VALUE,RESOLUTION,ERROR_LOG_FILE,FAILED_RECORDS,LOAD_TYPE) VALUES (:1,:2,:3,:4,:5,:6,:7,:8,:9,'Mediation')
+						insert into PM_DATA_USER.PM_DATA_LOADED (DBL_FILE,SCHEMA,TABLE_NAME,DATETIME,NE_KEY_NAME,NE_KEY_VALUE,RESOLUTION,ERROR_LOG_FILE,FAILED_RECORDS,LOAD_TYPE) VALUES (:1,:2,:3,:4,:5,:6,:7,:8,:9,'Mediation')
 					"""
 					cursor.prepare(sqlplus_script)
 					cursor.executemany(None,error_data)
@@ -662,7 +664,7 @@ def th_process_donedir(dir):
 	                        cursor=db.cursor()
 				try:
 					sqlplus_script="""
-						insert into AUDIT_DB.PM_DATA_LOADED (DBL_FILE,SCHEMA,TABLE_NAME,DATETIME,NE_KEY_NAME,NE_KEY_VALUE,RESOLUTION,INSERTED_RECORDS,LOAD_TYPE) VALUES (:1,:2,:3,:4,:5,:6,:7,:8,'Mediation')
+						insert into PM_DATA_USER.PM_DATA_LOADED (DBL_FILE,SCHEMA,TABLE_NAME,DATETIME,NE_KEY_NAME,NE_KEY_VALUE,RESOLUTION,INSERTED_RECORDS,LOAD_TYPE) VALUES (:1,:2,:3,:4,:5,:6,:7,:8,'Mediation')
 					"""
 					cursor.prepare(sqlplus_script)
 					cursor.executemany(None,inserted_data)
@@ -676,7 +678,7 @@ def th_process_donedir(dir):
 	                        cursor=db.cursor()
 				try:
 					sqlplus_script="""
-						insert into AUDIT_DB.PM_DATA_QUALITY(SCHEMA,TABLE_NAME,DATETIME,NE_KEY_NAME,NE_KEY_VALUE,COUNTER,VALUE,RULE) VALUES (:1,:2,:3,:4,:5,:6,:7,:8)
+						insert into PM_DATA_USER.PM_DATA_QUALITY(SCHEMA,TABLE_NAME,DATETIME,NE_KEY_NAME,NE_KEY_VALUE,COUNTER,VALUE,RULE) VALUES (:1,:2,:3,:4,:5,:6,:7,:8)
 					"""
 					cursor.prepare(sqlplus_script)
 					cursor.executemany(None,fails)
@@ -701,10 +703,10 @@ def th_find_root_cause(schema):
 		'ALU_MRF':{'sql':"select '{table_name}'||'|'||replace(regexp_substr (SOURCE_FILE_NAME, '[^-]+', 1, 1),'A','')||'|'||regexp_substr (SOURCE_FILE_NAME, '[^_]+', 1, 2) from audit_db.file_monitor_r2l where DESTINATION_DIRECTORY like '%{schema}%' and  (DESTINATION_FILE_NAME like {converted_ne_list}) and (DESTINATION_FILE_NAME like {converted_datetime_list})",'dateformat':"A%Y%m%d.%H%M"},
 		'ERICSSON_EUTRAN':{'sql':"select '{table_name}'||'|'||replace(regexp_substr (SOURCE_FILE_NAME, '[^-]+', 1, 1),'A','')||'|'||regexp_substr (regexp_substr (SOURCE_FILE_NAME, '[^=]+', 1, 4), '[^_]+', 1, 1)  from audit_db.file_monitor_r2l where DESTINATION_DIRECTORY like '%ERI_EUTRAN%' and  (DESTINATION_FILE_NAME like {converted_ne_list}) and (DESTINATION_FILE_NAME like {converted_datetime_list})",'dateformat':"A%Y%m%d.%H%M"},
 		'ERICSSON_MME':{'sql':"select '{table_name}'||'|'||replace(regexp_substr (SOURCE_FILE_NAME, '[^-]+', 1, 1),'A','')||'|'||regexp_substr (regexp_substr (SOURCE_FILE_NAME, '[^=]+', 1, 4), '[^,]+', 1, 1)  from audit_db.file_monitor_r2l where DESTINATION_DIRECTORY like '%ERI_MME%' and  (DESTINATION_FILE_NAME like {converted_ne_list}) and (DESTINATION_FILE_NAME like {converted_datetime_list})",'dateformat':"A%Y%m%d.%H%M"},
-		'NSN_EUTRAN':{'sql':"select '{table_name}'||'|'||to_char(DATETIME,'YYYYMMDD.HH24MI')||'|'||NE_KEY_VALUE from AUDIT_DB.PM_DATA_FILES where (TABLE_NAME = '{table_name}' or TABLE_NAME = 'ALL') and SCHEMA='{schema}' and (NE_KEY_VALUE in {ne_list}) and (DATETIME in ({datetime_list}))",'dateformat':"%Y%m%d.%H%M"},
-		'NSN_MME':{'sql':"select '{table_name}'||'|'||to_char(DATETIME,'YYYYMMDD.HH24MI')||'|'||NE_KEY_VALUE from AUDIT_DB.PM_DATA_FILES where (TABLE_NAME = '{table_name}' or TABLE_NAME = 'ALL') and SCHEMA='{schema}' and (NE_KEY_VALUE in {ne_list}) and (DATETIME in ({datetime_list}))",'dateformat':"%Y%m%d.%H%M"},
-		'NSN_HSS':{'sql':"select '{table_name}'||'|'||to_char(DATETIME,'YYYYMMDD.HH24MI')||'|'||NE_KEY_VALUE from AUDIT_DB.PM_DATA_FILES where (TABLE_NAME = '{table_name}' or TABLE_NAME = 'ALL') and SCHEMA='{schema}' and (NE_KEY_VALUE in {ne_list}) and (DATETIME in ({datetime_list}))",'dateformat':"%Y%m%d.%H%M"},
-		'NSN_SAEGW':{'sql':"select '{table_name}'||'|'||to_char(DATETIME,'YYYYMMDD.HH24MI')||'|'||NE_KEY_VALUE from AUDIT_DB.PM_DATA_FILES where (TABLE_NAME = '{table_name}' or TABLE_NAME = 'ALL') and SCHEMA='{schema}' and (NE_KEY_VALUE in {ne_list}) and (DATETIME in ({datetime_list}))",'dateformat':"%Y%m%d.%H%M"},
+		'NSN_EUTRAN':{'sql':"select '{table_name}'||'|'||to_char(DATETIME,'YYYYMMDD.HH24MI')||'|'||NE_KEY_VALUE from PM_DATA_USER.PM_DATA_FILES where (TABLE_NAME = '{table_name}' or TABLE_NAME = 'ALL') and SCHEMA='{schema}' and (NE_KEY_VALUE in {ne_list}) and (DATETIME in ({datetime_list}))",'dateformat':"%Y%m%d.%H%M"},
+		'NSN_MME':{'sql':"select '{table_name}'||'|'||to_char(DATETIME,'YYYYMMDD.HH24MI')||'|'||NE_KEY_VALUE from PM_DATA_USER.PM_DATA_FILES where (TABLE_NAME = '{table_name}' or TABLE_NAME = 'ALL') and SCHEMA='{schema}' and (NE_KEY_VALUE in {ne_list}) and (DATETIME in ({datetime_list}))",'dateformat':"%Y%m%d.%H%M"},
+		'NSN_HSS':{'sql':"select '{table_name}'||'|'||to_char(DATETIME,'YYYYMMDD.HH24MI')||'|'||NE_KEY_VALUE from PM_DATA_USER.PM_DATA_FILES where (TABLE_NAME = '{table_name}' or TABLE_NAME = 'ALL') and SCHEMA='{schema}' and (NE_KEY_VALUE in {ne_list}) and (DATETIME in ({datetime_list}))",'dateformat':"%Y%m%d.%H%M"},
+		'NSN_SAEGW':{'sql':"select '{table_name}'||'|'||to_char(DATETIME,'YYYYMMDD.HH24MI')||'|'||NE_KEY_VALUE from PM_DATA_USER.PM_DATA_FILES where (TABLE_NAME = '{table_name}' or TABLE_NAME = 'ALL') and SCHEMA='{schema}' and (NE_KEY_VALUE in {ne_list}) and (DATETIME in ({datetime_list}))",'dateformat':"%Y%m%d.%H%M"},
 	}
 	while True:
 		holes=[]
@@ -714,7 +716,7 @@ def th_find_root_cause(schema):
 			app_logger_local.info("Looking for fails to check the root cause")
 			sqlplus_script="""
 				select '' ROOT_CAUSE_CODE, STATUS, INSERTED_RECORDS, SCHEMA,TABLE_NAME,DATETIME,NE_KEY_VALUE, NE_KEY_NAME, AVG_INSERTED_RECORDS, ERROR_LOG_FILE
-				from AUDIT_DB.PM_DATA_STATUS
+				from PM_DATA_USER.PM_DATA_STATUS
 				where DATETIME > sysdate-1
 				and status='Fail'
 				and DATETIME_UPD_RC< sysdate-(1/1440*120)
@@ -831,9 +833,9 @@ def th_find_root_cause(schema):
 					holes[idx][0]='999'
 
 			try:
-				app_logger_local.info('Updating AUDIT_DB.PM_DATA_STATUS')
+				app_logger_local.info('Updating PM_DATA_USER.PM_DATA_STATUS')
                                 sqlplus_script="""
-                                        update AUDIT_DB.PM_DATA_STATUS set ROOT_CAUSE_CODE=:1,STATUS=:2,INSERTED_RECORDS=:3, DATETIME_UPD_RC= sysdate  WHERE SCHEMA=:4 AND TABLE_NAME=:5 AND DATETIME=:6 AND NE_KEY_VALUE=:7
+                                        update PM_DATA_USER.PM_DATA_STATUS set ROOT_CAUSE_CODE=:1,STATUS=:2,INSERTED_RECORDS=:3, DATETIME_UPD_RC= sysdate  WHERE SCHEMA=:4 AND TABLE_NAME=:5 AND DATETIME=:6 AND NE_KEY_VALUE=:7
                                 """
                                 cursor.prepare(sqlplus_script)
                                 cursor.executemany(None,holes)
@@ -860,7 +862,7 @@ def th_find_root_cause_summary(schema):
                         app_logger_local.info("Looking for fails to check the root cause")
                         sqlplus_script="""
                                 select '' ROOT_CAUSE_CODE, STATUS, INSERTED_RECORDS, SCHEMA,TABLE_NAME,DATETIME,NE_KEY_VALUE, NE_KEY_NAME, AVG_INSERTED_RECORDS, ERROR_LOG_FILE
-                                from AUDIT_DB.PM_DATA_STATUS
+                                from PM_DATA_USER.PM_DATA_STATUS
                                 where DATETIME > sysdate-1
                                 and status='Fail'
                                 and DATETIME_UPD_RC< sysdate-(1/1440*120)
@@ -932,9 +934,9 @@ def th_find_root_cause_summary(schema):
 				holes[idx]=holes[idx][:-3]
                                 holes[idx][0]='999'
                         try:
-                                app_logger_local.info('Updating AUDIT_DB.PM_DATA_STATUS')
+                                app_logger_local.info('Updating PM_DATA_USER.PM_DATA_STATUS')
                                 sqlplus_script="""
-                                        update AUDIT_DB.PM_DATA_STATUS set ROOT_CAUSE_CODE=:1,STATUS=:2,INSERTED_RECORDS=:3, DATETIME_UPD_RC= sysdate  WHERE SCHEMA=:4 AND TABLE_NAME=:5 AND DATETIME=:6 AND NE_KEY_VALUE=:7
+                                        update PM_DATA_USER.PM_DATA_STATUS set ROOT_CAUSE_CODE=:1,STATUS=:2,INSERTED_RECORDS=:3, DATETIME_UPD_RC= sysdate  WHERE SCHEMA=:4 AND TABLE_NAME=:5 AND DATETIME=:6 AND NE_KEY_VALUE=:7
                                 """
                                 cursor.prepare(sqlplus_script)
                                 cursor.executemany(None,holes)
@@ -965,7 +967,7 @@ def fill_summary():
 				SUBSTR(a.message, INSTR(a.message, 'from') + 5, INSTR(a.message, ' to ',INSTR(a.message, 'from')) - INSTR(a.message, 'from') - 5) datetime,
 				message
 				FROM logs.summary_log a, aircom.summary_reports b
-				WHERE a.datetime >= (select last_handled_datestamp from audit_db.pm_data_summary_lh)
+				WHERE a.datetime >= (select last_handled_datestamp from PM_DATA_USER.pm_data_summary_lh)
 				AND a.msg_number in (109)
 				AND a.prid = b.prid
 				AND a.message not like '%No new managed elements%'
@@ -1014,7 +1016,7 @@ def fill_summary():
 	                        cursor=db.cursor()
 				try:
 					sqlplus_script="""
-						insert into AUDIT_DB.PM_DATA_LOADED (DBL_FILE,SCHEMA,TABLE_NAME,DATETIME,NE_KEY_NAME,NE_KEY_VALUE,RESOLUTION,INSERTED_RECORDS,ERROR_LOG_FILE,LOAD_TYPE) VALUES (:1,:2,:3,:4,:5,:6,:7,:8,:9,'Summary')
+						insert into PM_DATA_USER.PM_DATA_LOADED (DBL_FILE,SCHEMA,TABLE_NAME,DATETIME,NE_KEY_NAME,NE_KEY_VALUE,RESOLUTION,INSERTED_RECORDS,ERROR_LOG_FILE,LOAD_TYPE) VALUES (:1,:2,:3,:4,:5,:6,:7,:8,:9,'Summary')
 					"""
 					cursor.prepare(sqlplus_script)
 					cursor.executemany(None,inserted_data)
@@ -1025,7 +1027,7 @@ def fill_summary():
 					quit()
 
 				sqlplus_script="""
-					update audit_db.pm_data_summary_lh set last_handled_datestamp=TO_DATE('{last_handled_datestamp}','YYYY-MM-DD HH24:MI:SS')
+					update PM_DATA_USER.pm_data_summary_lh set last_handled_datestamp=TO_DATE('{last_handled_datestamp}','YYYY-MM-DD HH24:MI:SS')
 				""".format(last_handled_datestamp=last_handled_datestamp.strftime("%Y-%m-%d %H:%M:%S"))
 				try:
 					cursor.execute(sqlplus_script)
@@ -1041,11 +1043,12 @@ def fill_summary():
 		
 def main():
         app_logger=logger.get_logger('Main')
+	check_running()
 	load_metadata()
 	workers=[]
 
 	#donedir_list=['/teoco/rdr_med06/DBL/done/ERI_LTE_ENODEB_FPP/done']
-	for donedir in filter(None,donedir_list):
+	"""for donedir in filter(None,donedir_list):
 		app_logger.info('Start monitoring {donedir} for bcp files'.format(donedir=donedir))
 		worker = Thread(target=th_process_donedir, args=(donedir,))
 		worker.setDaemon(True)
@@ -1068,12 +1071,14 @@ def main():
 		worker.setDaemon(True)
 		workers.append({'function':th_fill_pm_status,'params':schema,'object':worker})
 		worker.start()
-#	#schema_list=['ERICSSON_EUTRAN']
+	"""
+	schema_list=['ERICSSON_EUTRAN']
 	for schema in filter(None,schema_list):
 		worker = Thread(target=th_check_status, args=(schema,))
 		worker.setDaemon(True)
 		workers.append({'function':th_check_status,'params':schema,'object':worker})
 		worker.start()
+	"""
 	for schema in filter(None,schema_list):
 		worker = Thread(target=th_find_root_cause, args=(schema,))
 		worker.setDaemon(True)
@@ -1090,6 +1095,7 @@ def main():
 	worker.start()
 	workers.append({'function':fill_summary,'params':'','object':worker})
 
+	"""
 	#Monitor that none of the threads crashes
 	while True:
 		for idx,running_worker in enumerate(workers):
