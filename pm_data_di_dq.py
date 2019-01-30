@@ -8,7 +8,6 @@ import glob
 #import logging
 import time
 import cx_Oracle
-import base64
 import datetime
 import subprocess
 import re
@@ -27,6 +26,7 @@ class ManagedDbConnection:
 		self.DB_HOST = DB_HOST
 
 	def __enter__(self):
+		app_logger=logger.get_logger('ManagedDbConnection')
 		try:
 			self.db = cx_Oracle.connect('{DB_USER}/{DB_PASSWORD}@{DB_HOST}/{ORACLE_SID}'.format(DB_USER=self.DB_USER,DB_PASSWORD=self.DB_PASSWORD,DB_HOST=self.DB_HOST,ORACLE_SID=self.ORACLE_SID), threaded=True)
 		except cx_Oracle.DatabaseError as e:
@@ -1114,7 +1114,7 @@ if __name__ == "__main__":
         LOG_FILE=LOG_DIR+'/track_loaded_data.log'
 	logger=LoggerInit(LOG_FILE,10)
 	DB_USER=os.environ['DB_USER']
-	DB_PASSWORD=base64.b64decode(os.environ['DB_PASSWORD'])
+	DB_PASSWORD=os.environ['DB_PASSWORD']
 	ORACLE_SID=os.environ['ORACLE_SID']
 	DB_HOST=os.environ['DB_HOST']
 	DBL_DIR=os.environ['DVX2_IMP_DIR']+'/config/Dbl/'
