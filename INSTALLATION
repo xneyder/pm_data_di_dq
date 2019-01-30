@@ -1,0 +1,11 @@
+Installation Instructions:
+
+- Run: git clone https://github.com/xneyder/pm_data_di_dq.git
+- Run: cd pm_data_di_dq
+- Create the user PM_DATA_USER in the database
+- Run the script create_tables.sql in the database
+- Run: $HOME/.local/bin/pipenv install (If pipenv is not installed install it running pip install pipenv --user)
+- Run: cp env_template.ksh env.ksh
+- Fill the file env.ksh with the DB credentials
+- Run: chmod +x pm_data_di_dq_parent.ksh
+- To execute the script run pm_data_di_dq_parent.ksh
