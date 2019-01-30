@@ -11,7 +11,10 @@ export DBL_ERROR_DIR=''
 export DBL_FAIL_DIR=''
 export DBL_DONE_DIR=''
 export DVX2_IMP_DIR=''
+#Folder with enough space
+export TMP_DIR=''
 
 export LOG_DIR=/teoco/sa_root_med06/logs/
 export LD_LIBRARY_PATH=/oracle_client/products/11.2.0//lib:/oracle_client/products/11.2.0//lib32:/oracle_client/products/11.2.0//lib:/oracle_client/products/11.2.0//lib32
+
 

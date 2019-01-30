@@ -1107,7 +1107,9 @@ def main():
 		time.sleep(900)
 
 if __name__ == "__main__":
-	TMP_DIR=os.path.join(os.getcwd(),'tmp')
+	TMP_DIR=os.environ['TMP_DIR']+'/track_data/'
+	if not os.path.exists(TMP_DIR):
+		os.makedirs(TMP_DIR)
         LOG_DIR=os.environ['LOG_DIR']+'/track_data/'
 	if not os.path.exists(LOG_DIR):
 		os.makedirs(LOG_DIR)
