@@ -464,9 +464,12 @@ def th_fill_pm_status(schema):
 				file.write('LOAD_TYPE)\n')
 			app_logger_local.info("Loading {file_name}".format(file_name=file_name))
 			log_file=LOG_DIR+'/'+os.path.basename(file_name.replace('.bcp','.log'))
-			returncode,sqlldr_out=run_sqlldr(ctl_file, log_file)
-			if returncode!=0:
-				app_logger_local.error('Error loading {file_name} to table PM_DATA_USER.PM_DATA_STATUS'.format(file_name=file_name))
+			try:
+				returncode,sqlldr_out=run_sqlldr(ctl_file, log_file)
+				if returncode!=0:
+					app_logger_local.error('Error loading {file_name} to table PM_DATA_USER.PM_DATA_STATUS'.format(file_name=file_name))
+			except OSError:
+				pass
 			try:
 				os.remove(log_file)
 			except OSError:
@@ -610,54 +613,55 @@ def th_process_donedir(dir):
 			key_name=metadata[ftarget_table]['key']
 			dq=metadata[ftarget_table]['dq']
 			columns=metadata[ftarget_table]['Columns']
-			with open(bcpfile,'r') as file:
-				filedata=file.read()
-				lines=filedata.split(line_delimiter)[:-1]
-				shorted_lines=[x.split(delimiter)[datetime_index]+delimiter+x.split(delimiter)[key_index] for x in lines]
-				counts=Counter(shorted_lines)
-				for key,value in counts.items():
-					datetime_srt=key.split(delimiter)[0]
-					try:
-						datetime_object = datetime.datetime.strptime(datetime_srt, date_format)			
-					except (AttributeError,ValueError), e:
-						app_logger_local.error('Cant parse date DATETIME: {datetime_srt} DATEFORMAT: {date_format} FILE: {bcpfile}'.format(datetime_srt=datetime_srt,date_format=date_format,bcpfile=bcpfile))
-						continue
-					if datetime_object.minute==5 or datetime_object.minute==10 or datetime_object.minute==20 or datetime_object.minute==25 or datetime_object.minute==35 or datetime_object.minute==40 or datetime_object.minute==50 or datetime_object.minute==55:
-						resolution=1
-					elif datetime_object.minute==15 or datetime_object.minute==45:
-						resolution=2
-					elif datetime_object.minute==30:
-						resolution=3
-					elif datetime_object.minute==0:
-						resolution=4
-					elif datetime_object.minute==0 and datetime_object.hour==0:
-						resolution=5
-					else:
-						app_logger_local.error('Datetime {datetime_object} has invalid resolution for table {target_table} not found'.format(datetime_object=datetime_object,target_table=target_table))
-						continue
-					inserted_data.append([dbl_file,schema,target_table,datetime_srt,key_name,key.split(delimiter)[1],resolution,value])
-				#Start checking data quality
-				for counter,data in dq.items():
-					dq_key_index=data['key_index']
-					dq_counter_index=data['counter_index']
-					for rule in data['rules']:
-						test_rule=rule.replace('counter','x.split(delimiter)[dq_counter_index]')
-						for x in lines:
-							failed=False
-							try:
-								if not eval(test_rule):
+			try:
+				with open(bcpfile,'r') as file:
+					filedata=file.read()
+					lines=filedata.split(line_delimiter)[:-1]
+					shorted_lines=[x.split(delimiter)[datetime_index]+delimiter+x.split(delimiter)[key_index] for x in lines]
+					counts=Counter(shorted_lines)
+					for key,value in counts.items():
+						datetime_srt=key.split(delimiter)[0]
+						try:
+							datetime_object = datetime.datetime.strptime(datetime_srt, date_format)			
+						except (AttributeError,ValueError), e:
+							app_logger_local.error('Cant parse date DATETIME: {datetime_srt} DATEFORMAT: {date_format} FILE: {bcpfile}'.format(datetime_srt=datetime_srt,date_format=date_format,bcpfile=bcpfile))
+							continue
+						if datetime_object.minute==5 or datetime_object.minute==10 or datetime_object.minute==20 or datetime_object.minute==25 or datetime_object.minute==35 or datetime_object.minute==40 or datetime_object.minute==50 or datetime_object.minute==55:
+							resolution=1
+						elif datetime_object.minute==15 or datetime_object.minute==45:
+							resolution=2
+						elif datetime_object.minute==30:
+							resolution=3
+						elif datetime_object.minute==0:
+							resolution=4
+						elif datetime_object.minute==0 and datetime_object.hour==0:
+							resolution=5
+						else:
+							app_logger_local.error('Datetime {datetime_object} has invalid resolution for table {target_table} not found'.format(datetime_object=datetime_object,target_table=target_table))
+							continue
+						inserted_data.append([dbl_file,schema,target_table,datetime_srt,key_name,key.split(delimiter)[1],resolution,value])
+					#Start checking data quality
+					for counter,data in dq.items():
+						dq_key_index=data['key_index']
+						dq_counter_index=data['counter_index']
+						for rule in data['rules']:
+							test_rule=rule.replace('counter','x.split(delimiter)[dq_counter_index]')
+							for x in lines:
+								failed=False
+								try:
+									if not eval(test_rule):
+										failed=True
+								except ValueError:
 									failed=True
-							except ValueError:
-								failed=True
-							if failed:
-								fails.append([schema,target_table,x.split(delimiter)[datetime_index],key_name,x.split(delimiter)[dq_key_index],counter,x.split(delimiter)[dq_counter_index],rule])
-					#print(bcpfile,fails)
-					#quit()
-				try:
-					os.remove(bcpfile)
-				except OSError:
-					pass
+								if failed:
+									fails.append([schema,target_table,x.split(delimiter)[datetime_index],key_name,x.split(delimiter)[dq_key_index],counter,x.split(delimiter)[dq_counter_index],rule])
+					try:
+						os.remove(bcpfile)
+					except OSError:
+						pass
 						
+			except IOError:
+				pass
 		if inserted_data:
 			with ManagedDbConnection(DB_USER,DB_PASSWORD,ORACLE_SID,DB_HOST) as db:
 	                        cursor=db.cursor()
@@ -1046,7 +1050,7 @@ def main():
 	load_metadata()
 	workers=[]
 
-	#donedir_list=['/teoco/rdr_med06/DBL/done/ERI_LTE_ENODEB_FPP/done']
+	donedir_list=['/teoco/backup_med06/DBL/done/ERI_LTE_ENODEB_FPP/done']
 	for donedir in filter(None,donedir_list):
 		app_logger.info('Start monitoring {donedir} for bcp files'.format(donedir=donedir))
 		worker = Thread(target=th_process_donedir, args=(donedir,))
@@ -1092,19 +1096,10 @@ def main():
 	worker.start()
 	workers.append({'function':fill_summary,'params':'','object':worker})
 
-	#Monitor that none of the threads crashes
+
+	#sleep forever
 	while True:
-		for idx,running_worker in enumerate(workers):
-			if not running_worker['object'].isAlive():
-				app_logger.error('Thread {running_worker} crashed running it again'.format(running_worker=running_worker))
-				if running_worker['params']:
-					worker = Thread(target=running_worker['function'], args=(running_worker['params'],))
-				else:
-					worker = Thread(target=running_worker['function'], args=())
-				worker.setDaemon(True)
-				workers[idx]['object']=worker
-				worker.start()
-		time.sleep(900)
+		time.sleep(90000)
 
 if __name__ == "__main__":
 	TMP_DIR=os.environ['TMP_DIR']+'/track_data/'

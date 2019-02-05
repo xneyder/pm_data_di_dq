@@ -41,7 +41,7 @@ class LoggerInit:
     def get_logger(self,logger_name):
         logger=logging.getLogger(logger_name)
         logger.setLevel(logging.DEBUG)
-        logger.addHandler(self.console_handler)
+        #logger.addHandler(self.console_handler)
         logger.addHandler(self.file_handler)
         logger.propagate=False
         return logger
