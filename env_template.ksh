@@ -15,6 +15,6 @@ export DVX2_IMP_DIR=''
 export TMP_DIR=''
 
 export LOG_DIR=/teoco/sa_root_med06/logs/
-export LD_LIBRARY_PATH=/oracle_client/products/11.2.0//lib:/oracle_client/products/11.2.0//lib32:/oracle_client/products/11.2.0//lib:/oracle_client/products/11.2.0//lib32
-
+export LD_LIBRARY_PATH=$ORACLE_HOME/lib:$ORACLE_HOME/lib32
+export PATH=$ORACLE_HOME/bin/:$PATH
 
