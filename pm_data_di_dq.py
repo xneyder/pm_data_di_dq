@@ -1,4 +1,3 @@
-#!$INTEGRATION_DIR/implementation/track_data/bin/python
 #Daniel Jaramillo August 2018
 
 import os
@@ -400,7 +399,6 @@ def th_fill_pm_status(schema):
 			except cx_Oracle.DatabaseError as e:
 				app_logger_local.error(e)
 				app_logger_local.error(sqlplus_script)
-				quit()
 				
 		pm_status_data=[]
 		tm=datetime.datetime.now()
@@ -468,19 +466,15 @@ def th_fill_pm_status(schema):
 				returncode,sqlldr_out=run_sqlldr(ctl_file, log_file)
 				if returncode!=0:
 					app_logger_local.error('Error loading {file_name} to table PM_DATA_USER.PM_DATA_STATUS'.format(file_name=file_name))
-			except OSError:
+			except OSError as e:
+				app_logger.error('sqlldr '+str(e))
 				pass
 			try:
 				os.remove(log_file)
-			except OSError:
-				pass
-			try:
 				os.remove(ctl_file)
-			except OSError:
-				pass
-			try:
 				os.remove(file_name)
-			except OSError:
+			except OSError as e:
+				app_logger.error('sqlldr '+str(e))
 				pass
 			
 		tm+=datetime.timedelta(minutes=1445)
@@ -1102,13 +1096,13 @@ def main():
 		time.sleep(90000)
 
 if __name__ == "__main__":
-	TMP_DIR=os.environ['TMP_DIR']+'/track_data/'
+	TMP_DIR=os.environ['TMP_DIR']+'/pm_data_di_dq/'
 	if not os.path.exists(TMP_DIR):
 		os.makedirs(TMP_DIR)
-        LOG_DIR=os.environ['LOG_DIR']+'/track_data/'
+        LOG_DIR=os.environ['LOG_DIR']+'/pm_data_di_dq/'
 	if not os.path.exists(LOG_DIR):
 		os.makedirs(LOG_DIR)
-        LOG_FILE=LOG_DIR+'/track_loaded_data.log'
+        LOG_FILE=LOG_DIR+'/pm_data_di_dq.log'
 	logger=LoggerInit(LOG_FILE,10)
 	DB_USER=os.environ['DB_USER']
 	DB_PASSWORD=os.environ['DB_PASSWORD']
