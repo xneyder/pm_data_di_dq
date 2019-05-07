@@ -1044,7 +1044,6 @@ def main():
 	load_metadata()
 	workers=[]
 
-	donedir_list=['/teoco/backup_med06/DBL/done/ERI_LTE_ENODEB_FPP/done']
 	for donedir in filter(None,donedir_list):
 		app_logger.info('Start monitoring {donedir} for bcp files'.format(donedir=donedir))
 		worker = Thread(target=th_process_donedir, args=(donedir,))
