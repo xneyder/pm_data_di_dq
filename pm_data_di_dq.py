@@ -532,8 +532,10 @@ def th_process_errordir(dir):
 						counts=Counter(shorted_lines)
 						for key,value in counts.items():
 							datetime_srt=key.split(delimiter)[0]
-							datetime_object = datetime.datetime.strptime(datetime_srt, date_format)			
-							#datetime_srt=datetime_object.strftime("%d-%b-%y %I.%M.%S %p")
+							try:
+								datetime_object = datetime.datetime.strptime(datetime_srt, date_format)	
+							except ValueError:
+								continue
 							datetime_srt=datetime_object.strftime(date_format)
 							if datetime_object.minute==5 or datetime_object.minute==10 or datetime_object.minute==20 or datetime_object.minute==25 or datetime_object.minute==35 or datetime_object.minute==40 or datetime_object.minute==50 or datetime_object.minute==55:
 								resolution=1
