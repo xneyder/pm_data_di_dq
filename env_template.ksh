@@ -13,6 +13,8 @@ export DBL_DONE_DIR=''
 export DVX2_IMP_DIR=''
 #Folder with enough space
 export TMP_DIR=''
+#Metadata Schema
+export SCHEMA=PM_DATA_USER
 
 export LOG_DIR=/teoco/sa_root_med06/logs/
 export LD_LIBRARY_PATH=$ORACLE_HOME/lib:$ORACLE_HOME/lib32
